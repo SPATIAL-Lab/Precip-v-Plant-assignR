@@ -230,4 +230,4 @@ load("plant_d18o_QA.RData")
 #### plot all 4 models ####
 qas = list("Precip H" = precip_d2h_QA, "Plant H" = plant_d2h_QA,
            "Precip O" = precip_d18o_QA, "Plant O" = plant_d18o_QA)
-plot.QA(qas, savePDF = T)
+plot.QA(qas, savePNG = TRUE)
