@@ -69,130 +69,8 @@ bird_d2h = spTransform(bird_d2h, aea)
 bird_d18o = spTransform(bird_d18o, aea)
 naMap = spTransform(naMap, aea)
 
-#### do the calRasters on the full datasets ####
-cr_precip_d2h = calRaster(bird_d2h, precip_d2h, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
-cr_plant_d2h = calRaster(bird_d2h, plant_d2h, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
-cr_precip_d18o = calRaster(bird_d18o, precip_d18o, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
-cr_plant_d18o = calRaster(bird_d18o, plant_d18o, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
-
-#### calc QA ####
-niter = 100
-vali = 40
-precip_d2h_QA <- QA(isoscape = precip_d2h, known = bird_d2h, valiStation = vali, 
-                    valiTime = niter, setSeed = T)
-precip_d18o_QA <- QA(precip_d18o, known = bird_d18o, valiStation = vali, 
-                     valiTime = niter, setSeed = T)
-plant_d2h_QA <- QA(plant_d2h, known = bird_d2h, valiStation = vali, 
-                   valiTime = niter, setSeed = T)
-plant_d18o_QA <- QA(plant_d18o, known = bird_d18o, valiStation = vali, 
-                     valiTime = niter, setSeed = T)
-
-# save output
-save(precip_d2h_QA, file="precip_d2h_QA.RData")
-save(precip_d18o_QA, file="precip_d18o_QA.RData")
-save(plant_d2h_QA, file="plant_d2h_QA.RData")
-save(plant_d18o_QA, file="plant_d18o_QA.RData")
-
-# to continue from here...
-load("precip_d2h_QA.RData")
-load("precip_d18o_QA.RData")
-load("plant_d2h_QA.RData")
-load("plant_d18o_QA.RData")
-
-#### plot all 4 models ####
-xx <- seq(0.01, 0.99, 0.01)
-
-# accuracy by prob
-means.p <- data.frame(xx, precip_d2h = apply(precip_d2h_QA$prption_byProb, 2, mean)/vali)
-means.p <- cbind(means.p, precip_d18o = apply(precip_d18o_QA$prption_byProb, 2, mean)/vali)
-means.p <- cbind(means.p, plant_d2h = apply(plant_d2h_QA$prption_byProb, 2, mean)/vali)
-means.p <- cbind(means.p, plant_d18o = apply(plant_d18o_QA$prption_byProb, 2, mean)/vali)
-
-# accuracy by area
-means.a <- data.frame(xx, precip_d2h = apply(precip_d2h_QA$prption_byArea, 2, mean)/vali)
-means.a <- cbind(means.a, precip_d18o = apply(precip_d18o_QA$prption_byArea, 2, mean)/vali)
-means.a <- cbind(means.a, plant_d2h = apply(plant_d2h_QA$prption_byArea, 2, mean)/vali)
-means.a <- cbind(means.a, plant_d18o = apply(plant_d18o_QA$prption_byArea, 2, mean)/vali)
-
-## plot precision
-precision1 <- precision2 <- precision3 <- precision4 <- matrix(rep(0, niter*99), ncol=niter, nrow=99)
-for (i in 1:niter){
-  precision1[,i] <- apply(precip_d2h_QA$precision[[i]],1, median)
-  precision2[,i] <- apply(precip_d18o_QA$precision[[i]],1, median)
-  precision3[,i] <- apply(plant_d2h_QA$precision[[i]],1, median)
-  precision4[,i] <- apply(plant_d18o_QA$precision[[i]],1, median)
-}
-mean1 <- mean2 <- mean3 <- mean4 <- NULL
-for(i in 1:99){
-  mean1 <- append(mean1, mean(precision1[i,]))
-  mean2 <- append(mean2, mean(precision2[i,]))
-  mean3 <- append(mean3, mean(precision3[i,]))
-  mean4 <- append(mean4, mean(precision4[i,]))
-}
-pre <- data.frame(xx,  precip_d2h = 1-mean1)
-pre <- cbind(pre,  precip_d18o = 1-mean2)
-pre <- cbind(pre,  plant_d2h = 1-mean3)
-pre <- cbind(pre,  plant_d18o = 1-mean4)
-
-#set up plots
-cols = c("red", "dark green", "blue", "purple")
-png("Fig3.png", units = "cm", width = 21, height = 8, res=600)
-layout(matrix(c(1,2,3), ncol=3))
-
-#plot it
-plot(pre$xx, pre$precip_d2h, type="l", col="red", xlab="Cumulative probability threshold", 
-     ylab="Proportion of area excluded", xlim=c(0,1), ylim=c(0,1))
-abline(1, -1, col="dark grey", lw=2)
-lines(pre$xx, pre$precip_d2h, col=cols[1], lw=2)
-lines(pre$xx, pre$precip_d18o, col=cols[2], lw=2)
-lines(pre$xx, pre$plant_d2h, col=cols[3], lw=2)
-lines(pre$xx, pre$plant_d18o, col=cols[4], lw=2)
-legend(0.01, 0.4, c(expression("Precip "*delta^{2}*"H"), expression("Precip "*delta^{18}*"O"),
-                    expression("Plant "*delta^{2}*"H"), expression("Plant "*delta^{18}*"O")),
-       lw=2, col=cols, bty="n")
-text(0.95, 0.95, "(a)")
-
-#plot it
-plot(means.p$xx, means.p$precip_d2h, type="l", col="red", xlab="Cumulative probability threshold", 
-     ylab="Proportion of validation stations included", xlim=c(0,1), ylim=c(0,1))
-abline(0, 1, col="dark grey", lw=2)
-lines(means.p$xx, means.p$precip_d2h, col=cols[1], lw=2)
-lines(means.p$xx, means.p$precip_d18o, col=cols[2], lw=2)
-lines(means.p$xx, means.p$plant_d2h, col=cols[3], lw=2)
-lines(means.p$xx, means.p$plant_d18o, col=cols[4], lw=2)
-text(0.05, 0.95, "(b)")
-
-#plot it
-plot(means.a$xx, means.a$precip_d2h, type="l", col="red", xlab="Cumulative area threshold", 
-     ylab="Proportion of validation stations included", xlim=c(0,1), ylim=c(0,1))
-abline(0, 1, col="dark grey", lw=2)
-lines(means.a$xx, means.a$precip_d2h, col=cols[1], lw=2)
-lines(means.a$xx, means.a$precip_d18o, col=cols[2], lw=2)
-lines(means.a$xx, means.a$plant_d2h, col=cols[3], lw=2)
-lines(means.a$xx, means.a$plant_d18o, col=cols[4], lw=2)
-text(0.05, 0.95, "(c)")
-
-dev.off()
-
-##########
-
-rnd = 1/length(na.omit(getValues(precip_d2h_mean)))
-pd <- data.frame(precip_d2h = as.numeric(precip_d2h_QA$pd_bird_val) / rnd)
-pd <- cbind(pd, precip_d18o=as.numeric(precip_d18o_QA$pd_bird_val) / rnd)
-pd <- cbind(pd, plant_d2h=as.numeric(plant_d2h_QA$pd_bird_val) / rnd)
-pd <- cbind(pd, plant_d18o=as.numeric(plant_d18o_QA$pd_bird_val) / rnd)
-
-
-png("Fig4.png", units="cm", width = 14, height = 14, res=600)
-boxplot(pd, col=cols, names = c(expression("Precip "*delta^{2}*"H"), expression("Precip "*delta^{18}*"O"),
-                                expression("Plant "*delta^{2}*"H"), expression("Plant "*delta^{18}*"O")),
-        ylab = "Odds ratio (known origin:random)", outline = FALSE)
-
-dev.off()
-
-
 #### plot  isoscapes ####
-png("Fig1.png", units = "cm", res = 600, width = 20, height = 25)
+png("Fig2.png", units = "cm", res = 600, width = 20, height = 25)
 par(mfrow=c(4,2), mai=c(0,0,0,1))
 plot(precip_d2h[[1]], axes=FALSE, box=FALSE, xlim=c(-2.5e6, 2.5e6), ylim=c(0,4e6), legend=FALSE)
 plot(precip_d2h[[1]], legend.only=TRUE, smallplot=c(0.75,0.77,0.2,0.8), 
@@ -237,40 +115,119 @@ text(-2.35e6, 3.95e6, "(h)", cex=1.5)
 
 dev.off()
 
-png("Fig2.png", units="in", res=600, width = 7, height = 6.5)
+#### do the calRasters on the full datasets ####
+cr_precip_d2h = calRaster(bird_d2h, precip_d2h, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
+cr_plant_d2h = calRaster(bird_d2h, plant_d2h, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
+cr_precip_d18o = calRaster(bird_d18o, precip_d18o, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
+cr_plant_d18o = calRaster(bird_d18o, plant_d18o, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
+
+#### plot regression relationships for full datasets ####
+png("../Fig3.png", units="in", res=600, width = 7, height = 6.5)
 par(mar = c(5,5,0.5,0.5))
 layout(matrix(c(1,2,3,4), nrow = 2))
 
 plot(cr_precip_d2h$lm.data, pch=21, bg="white", 
      xlab=expression("Precipitation "*delta^{2}*"H"), 
      ylab=expression("Feather "*delta^{2}*"H"))
-abline(cr_precip_d2h$lm.model)
+mod = cr_precip_d2h$lm.model
+abline(mod)
 xl = par("usr")[1] + (par("usr")[2] - par("usr")[1]) / 15
 yl = par("usr")[4] - (par("usr")[4] - par("usr")[3]) / 13
 text(xl, yl, "(a)")
+eqn1 = paste0("y = ", round(mod$coefficients[2], 2), " * x ",
+            ifelse(sign(mod$coefficients[1]) == 1, "+ ", "- "),
+            abs(round(mod$coefficients[1],1)))
+yl = par("usr")[4] - 3 * (par("usr")[4] - par("usr")[3]) / 13
+text(xl, yl, eqn1, pos=4)
+r2 = round(summary(mod)$adj.r.squared,2)
+eqn2 = bquote(Adj ~ R^2 == .(r2))
+yl = par("usr")[4] - 4 * (par("usr")[4] - par("usr")[3]) / 13
+text(xl, yl, eqn2, pos=4)
 
 plot(cr_precip_d18o$lm.data, pch=21, bg="white", 
      xlab=expression("Precipitation "*delta^{18}*"O"), 
      ylab=expression("Feather "*delta^{18}*"O"))
-abline(cr_precip_d18o$lm.model)
+mod = cr_precip_d18o$lm.model
+abline(mod)
 xl = par("usr")[1] + (par("usr")[2] - par("usr")[1]) / 15
 yl = par("usr")[4] - (par("usr")[4] - par("usr")[3]) / 13
 text(xl, yl, "(c)")
+eqn1 = paste0("y = ", round(mod$coefficients[2], 2), " * x ",
+              ifelse(sign(mod$coefficients[1]) == 1, "+ ", "- "),
+              abs(round(mod$coefficients[1],1)))
+yl = par("usr")[4] - 3 * (par("usr")[4] - par("usr")[3]) / 13
+text(xl, yl, eqn1, pos=4)
+r2 = round(summary(mod)$adj.r.squared,2)
+eqn2 = bquote(Adj ~ R^2 == .(r2))
+yl = par("usr")[4] - 4 * (par("usr")[4] - par("usr")[3]) / 13
+text(xl, yl, eqn2, pos=4)
+
 
 plot(cr_plant_d2h$lm.data, pch=21, bg="white", 
      xlab=expression("Plant "*delta^{2}*"H"), 
      ylab=expression("Feather "*delta^{2}*"H"))
-abline(cr_plant_d2h$lm.model)
+mod = cr_plant_d2h$lm.model
+abline(mod)
 xl = par("usr")[1] + (par("usr")[2] - par("usr")[1]) / 15
 yl = par("usr")[4] - (par("usr")[4] - par("usr")[3]) / 13
 text(xl, yl, "(b)")
+eqn1 = paste0("y = ", round(mod$coefficients[2], 2), " * x ",
+              ifelse(sign(mod$coefficients[1]) == 1, "+ ", "- "),
+              abs(round(mod$coefficients[1],1)))
+xl = par("usr")[1] + 2 * (par("usr")[2] - par("usr")[1]) / 15
+yl = par("usr")[4] - 2 * (par("usr")[4] - par("usr")[3]) / 13
+text(xl, yl, eqn1, pos=4)
+r2 = round(summary(mod)$adj.r.squared,2)
+eqn2 = bquote(Adj ~ R^2 == .(r2))
+yl = par("usr")[4] - 3 * (par("usr")[4] - par("usr")[3]) / 13
+text(xl, yl, eqn2, pos=4)
 
 plot(cr_plant_d18o$lm.data, pch=21, bg="white", 
      xlab=expression("Plant "*delta^{18}*"O"), 
      ylab=expression("Feather "*delta^{18}*"O"))
-abline(cr_plant_d18o$lm.model)
+mod = cr_plant_d18o$lm.model
+abline(mod)
 xl = par("usr")[1] + (par("usr")[2] - par("usr")[1]) / 15
 yl = par("usr")[4] - (par("usr")[4] - par("usr")[3]) / 13
 text(xl, yl, "(d)")
+eqn1 = paste0("y = ", round(mod$coefficients[2], 2), " * x ",
+              ifelse(sign(mod$coefficients[1]) == 1, "+ ", "- "),
+              abs(round(mod$coefficients[1],1)))
+xl = par("usr")[1] + 0.5 * (par("usr")[2] - par("usr")[1]) / 15
+yl = par("usr")[4] - 2.5 * (par("usr")[4] - par("usr")[3]) / 13
+text(xl, yl, eqn1, pos=4)
+r2 = round(summary(mod)$adj.r.squared,2)
+eqn2 = bquote(Adj ~ R^2 == .(r2))
+yl = par("usr")[4] - 3.5 * (par("usr")[4] - par("usr")[3]) / 13
+text(xl, yl, eqn2, pos=4)
 
 dev.off()
+
+#### calc QA ####
+niter = 100
+vali = 40
+precip_d2h_QA <- QA(isoscape = precip_d2h, known = bird_d2h, valiStation = vali, 
+                    valiTime = niter, setSeed = T)
+precip_d18o_QA <- QA(precip_d18o, known = bird_d18o, valiStation = vali, 
+                     valiTime = niter, setSeed = T)
+plant_d2h_QA <- QA(plant_d2h, known = bird_d2h, valiStation = vali, 
+                   valiTime = niter, setSeed = T)
+plant_d18o_QA <- QA(plant_d18o, known = bird_d18o, valiStation = vali, 
+                     valiTime = niter, setSeed = T)
+
+# save output
+save(precip_d2h_QA, file="precip_d2h_QA.RData")
+save(precip_d18o_QA, file="precip_d18o_QA.RData")
+save(plant_d2h_QA, file="plant_d2h_QA.RData")
+save(plant_d18o_QA, file="plant_d18o_QA.RData")
+
+# to continue from here...
+load("precip_d2h_QA.RData")
+load("precip_d18o_QA.RData")
+load("plant_d2h_QA.RData")
+load("plant_d18o_QA.RData")
+
+#### plot all 4 models ####
+qas = list("Precip H" = precip_d2h_QA, "Plant H" = plant_d2h_QA,
+           "Precip O" = precip_d18o_QA, "Plant O" = plant_d18o_QA)
+plot.QA(qas, savePDF = T)
