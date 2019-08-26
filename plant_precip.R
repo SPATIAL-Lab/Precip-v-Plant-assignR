@@ -56,13 +56,8 @@ plot(plant_d18o$mean - precip_d18o$predkrig)
 plot(plant_d18o$sd - precip_d18o$stdkrig)
 
 # read bird feather isotope data and make SPDF objects
-bird = read.csv("Hobson2015.csv")
-bird_d2h = SpatialPointsDataFrame(matrix(c(bird$Longitude, bird$Latitude),ncol=2), 
-                                  data.frame("d2H" = bird$d2H), 
-                                  proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-bird_d18o = SpatialPointsDataFrame(matrix(c(bird$Longitude, bird$Latitude),ncol=2), 
-                                  data.frame("d18O" = bird$d18O), 
-                                  proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+bird_d2h = subOrigData(reference = "Hobson and Koehler 2015")
+bird_d18o = subOrigData(marker = "d18O", reference = "Hobson and Koehler 2015")
 
 #project vector files
 bird_d2h = spTransform(bird_d2h, aea)
@@ -116,10 +111,10 @@ text(-2.35e6, 3.95e6, "(h)", cex=1.5)
 dev.off()
 
 #### do the calRasters on the full datasets ####
-cr_precip_d2h = calRaster(bird_d2h, precip_d2h, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
-cr_plant_d2h = calRaster(bird_d2h, plant_d2h, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
-cr_precip_d18o = calRaster(bird_d18o, precip_d18o, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
-cr_plant_d18o = calRaster(bird_d18o, plant_d18o, sdMethod = 1, genplot = FALSE, savePDF = FALSE)
+cr_precip_d2h = calRaster(bird_d2h, precip_d2h, genplot = FALSE, savePDF = FALSE)
+cr_plant_d2h = calRaster(bird_d2h, plant_d2h, genplot = FALSE, savePDF = FALSE)
+cr_precip_d18o = calRaster(bird_d18o, precip_d18o, genplot = FALSE, savePDF = FALSE)
+cr_plant_d18o = calRaster(bird_d18o, plant_d18o, genplot = FALSE, savePDF = FALSE)
 
 #### plot regression relationships for full datasets ####
 png("../Fig3.png", units="in", res=600, width = 7, height = 6.5)
@@ -204,16 +199,16 @@ text(xl, yl, eqn2, pos=4)
 dev.off()
 
 #### calc QA ####
-niter = 100
-vali = 40
+niter = 5
+vali = 2
 precip_d2h_QA <- QA(isoscape = precip_d2h, known = bird_d2h, valiStation = vali, 
-                    valiTime = niter, setSeed = T)
+                    valiTime = niter)
 precip_d18o_QA <- QA(precip_d18o, known = bird_d18o, valiStation = vali, 
-                     valiTime = niter, setSeed = T)
+                     valiTime = niter)
 plant_d2h_QA <- QA(plant_d2h, known = bird_d2h, valiStation = vali, 
-                   valiTime = niter, setSeed = T)
+                   valiTime = niter)
 plant_d18o_QA <- QA(plant_d18o, known = bird_d18o, valiStation = vali, 
-                     valiTime = niter, setSeed = T)
+                     valiTime = niter)
 
 # save output
 save(precip_d2h_QA, file="precip_d2h_QA.RData")
